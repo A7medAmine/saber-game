@@ -11,23 +11,36 @@
   :root { --c: #3fb6ff; --ink: #e8ecff; --dim: #8a90b8; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: #04050b; color: var(--ink); font-family: Inter, system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
-  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); text-align: center; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(16px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); text-align: center; }
   .hidden { display: none !important; }
   h1 { margin: 0 0 6px; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 40px; letter-spacing: .18em; text-shadow: 0 0 20px var(--c); }
   p { color: var(--dim); line-height: 1.5; max-width: 320px; margin: 6px 0; }
   .room { font-family: Orbitron, sans-serif; letter-spacing: .3em; color: var(--c); font-size: 20px; margin: 10px 0 26px; }
-  #startBtn { width: min(280px, 100%); padding: 20px; border: 0; border-radius: 16px; background: var(--c); color: #04050b; font: 900 20px Orbitron, sans-serif; letter-spacing: .1em; box-shadow: 0 0 40px color-mix(in srgb, var(--c) 60%, transparent); }
+  .big-btn { width: min(300px, 100%); padding: 18px; border: 0; border-radius: 16px; background: var(--c); color: #04050b; font: 900 19px Orbitron, sans-serif; letter-spacing: .1em; box-shadow: 0 0 40px color-mix(in srgb, var(--c) 55%, transparent); }
+  .big-btn:active { transform: scale(.98); }
   #err { color: #ff6b81; margin-top: 18px; max-width: 320px; }
 
-  #pad { justify-content: space-between; }
-  #status { font-size: 14px; color: var(--dim); }
+  #pad { justify-content: flex-start; gap: 12px; }
+  header { width: 100%; display: flex; align-items: center; gap: 10px; }
+  #badge { padding: 5px 12px; border-radius: 999px; background: var(--c); color: #04050b; font: 900 14px Orbitron, sans-serif; letter-spacing: .08em; }
+  #status { flex: 1; text-align: left; font-size: 13px; color: var(--dim); line-height: 1.35; }
   #status b { color: var(--ink); }
-  #tapZone { flex: 1; width: 100%; margin: 18px 0; border-radius: 24px; border: 2px dashed color-mix(in srgb, var(--c) 45%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; transition: background .15s; }
+  #reconnectBtn { padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .25); background: transparent; color: var(--ink); font: 600 13px Inter, sans-serif; }
+  #reconnectBtn.alert { border-color: #ff6b81; color: #ff6b81; }
+
+  #tapZone { flex: 1; width: 100%; border-radius: 24px; border: 2px dashed color-mix(in srgb, var(--c) 45%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; transition: background .15s; }
   #tapZone.flash { background: color-mix(in srgb, var(--c) 25%, transparent); }
-  #tapZone .big { font-family: Orbitron, sans-serif; font-size: 22px; font-weight: 900; letter-spacing: .12em; color: var(--c); }
-  #blade { width: 10px; height: 90px; border-radius: 6px; background: #fff; box-shadow: 0 0 18px 6px var(--c); transform-origin: 50% 100%; }
-  .swatches { display: flex; gap: 16px; }
-  .sw { width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent; }
+  #tapZone.bomb { background: rgba(255, 40, 60, .35); }
+  #tapZone .big { font-family: Orbitron, sans-serif; font-size: 20px; font-weight: 900; letter-spacing: .12em; color: var(--c); }
+  #blade { width: 10px; height: 80px; border-radius: 6px; background: #fff; box-shadow: 0 0 18px 6px var(--c); transform-origin: 50% 100%; }
+  #stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: min(320px, 92%); margin-top: 8px; }
+  #stats div { display: flex; flex-direction: column; gap: 2px; }
+  #stats span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  #stats b { font: 900 20px Orbitron, sans-serif; }
+  .bar { width: min(320px, 92%); height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+  #hp { height: 100%; width: 100%; background: linear-gradient(90deg, #ff4f6e, #ffd34f 45%, #4fffa0); background-size: 320px 100%; transition: width .25s; }
+  .swatches { display: flex; gap: 14px; }
+  .sw { width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; }
   .sw.on { border-color: #fff; }
 </style>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -37,18 +50,29 @@
   <h1>SABR</h1>
   <p>Your phone becomes the lightsaber.</p>
   <div class="room" id="roomLbl"></div>
-  <button id="startBtn">CONNECT</button>
+  <button id="connectBtn" class="big-btn">CONNECT</button>
   <p style="margin-top:22px">Hold it tight. A wrist strap is a good idea.</p>
   <div id="err"></div>
 </section>
 
 <section id="pad" class="screen hidden">
-  <div id="status">Connecting...</div>
+  <header>
+    <span id="badge">--</span>
+    <div id="status">Connecting...</div>
+    <button id="reconnectBtn">Reconnect</button>
+  </header>
   <div id="tapZone">
     <div id="blade"></div>
     <div class="big">TAP TO RECENTER</div>
     <p>Point the top of the phone at the game screen, then tap.</p>
+    <div class="bar"><div id="hp"></div></div>
+    <div id="stats">
+      <div><span>Team</span><b id="sScore">0</b></div>
+      <div><span>Combo</span><b id="sCombo">0</b></div>
+      <div><span>Your cuts</span><b id="sMine">0</b></div>
+    </div>
   </div>
+  <button id="actionBtn" class="big-btn hidden">START GAME</button>
   <div class="swatches" id="swatches"></div>
 </section>
 
@@ -56,36 +80,49 @@
 const PEER_PREFIX = 'sabrgamr-';
 const room = (new URLSearchParams(location.search).get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const $ = (id) => document.getElementById(id);
-let peer = null, conn = null, connected = false, gotSensor = false, sent = 0, wakeLock = null;
+const COLORS = ['#3fb6ff', '#ff3b5c', '#3dff7a', '#ffb02e', '#b45cff'];
+
+// A stable id per phone so a reconnect gets the same player slot and stats back.
+let pid = '';
+try { pid = localStorage.getItem('sabr-pid') || ''; } catch {}
+if (!pid) {
+  pid = 'p' + Math.random().toString(36).slice(2, 10);
+  try { localStorage.setItem('sabr-pid', pid); } catch {}
+}
+
+let peer = null, conn = null, connected = false, gotSensor = false, wakeLock = null;
+let myColor = null, permNote = '', retryTimer = 0, retryDelay = 1000, gameState = 'lobby';
 
 $('roomLbl').textContent = room ? 'ROOM ' + room : '';
 if (!room) {
-  $('startBtn').disabled = true;
+  $('connectBtn').disabled = true;
   $('err').textContent = 'No room code. Scan the QR code shown on the game screen.';
-}
-if (!window.isSecureContext) {
+} else if (!window.isSecureContext) {
   $('err').textContent = 'Motion sensors need HTTPS. Open the deployed https:// link.';
 }
 
-const COLORS = ['#3fb6ff', '#ff3b5c', '#3dff7a', '#b45cff', '#ffb02e'];
-COLORS.forEach((c, i) => {
+COLORS.forEach((c) => {
   const el = document.createElement('div');
-  el.className = 'sw' + (i === 0 ? ' on' : '');
+  el.className = 'sw';
+  el.dataset.c = c;
   el.style.background = c;
   el.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
-    document.querySelectorAll('.sw').forEach((s) => s.classList.remove('on'));
-    el.classList.add('on');
-    document.documentElement.style.setProperty('--c', c);
+    setColor(c);
     send({ t: 'c', c });
   });
   $('swatches').appendChild(el);
 });
 
-$('startBtn').addEventListener('click', async () => {
+function setColor(c) {
+  myColor = c;
+  document.documentElement.style.setProperty('--c', c);
+  document.querySelectorAll('.sw').forEach((s) => s.classList.toggle('on', s.dataset.c === c));
+}
+
+$('connectBtn').addEventListener('click', async () => {
   $('err').textContent = '';
   try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch {}
-  let permNote = '';
   try {
     // iOS 13+ (and some newer browsers) gate motion behind a permission prompt from a user gesture
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -103,56 +140,112 @@ $('startBtn').addEventListener('click', async () => {
   connect();
   setTimeout(() => {
     if (!gotSensor) setStatus('<b>No motion sensor data.</b> ' + (permNote || 'This device or browser may not have a gyroscope.'));
-  }, 2000);
+  }, 2500);
 });
 
 function onOrientation(e) {
   if (e.alpha == null) return;
-  if (!gotSensor && connected) setStatus('<b>Connected</b> to ' + room);
   gotSensor = true;
   if (!connected) return;
   conn.send({ t: 'o', a: +e.alpha.toFixed(2), b: +e.beta.toFixed(2), g: +e.gamma.toFixed(2) });
-  sent++;
   $('blade').style.transform = `rotate(${(-e.gamma).toFixed(1)}deg)`;
 }
 
+let connectingSince = 0, watchdog = 0;
 function connect() {
-  setStatus('Connecting to game <b>' + room + '</b>...');
-  peer = new Peer();
-  peer.on('open', () => {
-    conn = peer.connect(PEER_PREFIX + room, { reliable: false, serialization: 'json' });
-    conn.on('open', () => { connected = true; setStatus('<b>Connected</b> to ' + room); buzz(40); });
-    conn.on('data', onData);
-    conn.on('close', () => {
-      connected = false;
-      setStatus('<b>Disconnected.</b> Reconnecting...');
-      setTimeout(reconnect, 1500);
+  clearTimeout(retryTimer);
+  retryTimer = 0;
+  try { peer?.destroy(); } catch {}
+  connected = false;
+  connectingSince = Date.now();
+  clearTimeout(watchdog);
+  watchdog = setTimeout(() => { if (!connected) lost('Timed out.'); }, 10000);
+  setStatus('Connecting to room <b>' + room + '</b>...');
+  $('reconnectBtn').classList.remove('alert');
+  const myPeer = new Peer();
+  peer = myPeer;
+  myPeer.on('open', () => {
+    const c = myPeer.connect(PEER_PREFIX + room, { reliable: false, serialization: 'json' });
+    conn = c;
+    c.on('open', () => {
+      if (peer !== myPeer) return;
+      connected = true;
+      connectingSince = 0;
+      clearTimeout(watchdog);
+      retryDelay = 1000;
+      c.send({ t: 'hello', pid, color: myColor });
+      setStatus('<b>Connected</b> to room ' + room);
+      buzz(40);
     });
+    c.on('data', onData);
+    c.on('close', () => { if (peer === myPeer) lost('Connection lost.'); });
+    c.on('error', () => { if (peer === myPeer) lost('Connection error.'); });
   });
-  peer.on('error', (e) => {
-    connected = false;
-    if (e.type === 'peer-unavailable') setStatus('<b>Game not found.</b> Is the game screen open? Rescan the QR code.');
-    else setStatus('<b>Connection error</b> (' + e.type + '). Retrying...');
-    setTimeout(reconnect, 2500);
+  myPeer.on('error', (e) => {
+    if (peer !== myPeer) return;
+    if (e.type === 'peer-unavailable') lost('Game not found. Is the game screen open?');
+    else lost('Connection problem (' + e.type + ').');
   });
 }
 
-let reconnecting = false;
-function reconnect() {
-  if (reconnecting || connected) return;
-  reconnecting = true;
-  try { peer?.destroy(); } catch {}
-  connect();
-  setTimeout(() => { reconnecting = false; }, 1000);
+// Auto-retry with backoff; the Reconnect button retries immediately.
+function lost(why) {
+  if (retryTimer) return; // a retry is already scheduled
+  connected = false;
+  connectingSince = 0;
+  clearTimeout(watchdog);
+  $('reconnectBtn').classList.add('alert');
+  setStatus('<b>' + why + '</b> Retrying in ' + Math.round(retryDelay / 1000) + 's...');
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => { retryTimer = 0; connect(); }, retryDelay);
+  retryDelay = Math.min(retryDelay * 1.6, 8000);
 }
+
+$('reconnectBtn').addEventListener('click', () => {
+  retryDelay = 1000;
+  retryTimer = 0;
+  connect();
+});
 
 function onData(d) {
-  if (d.t === 'h') buzz(30);
-  else if (d.t === 'p') send({ t: 'q', ts: d.ts });
+  switch (d.t) {
+    case 'welcome':
+      $('badge').textContent = d.name;
+      setColor(d.color);
+      setGameState(d.state);
+      break;
+    case 'full':
+      setStatus('<b>Room is full</b> (4 players max).');
+      break;
+    case 'state': setGameState(d.s); break;
+    case 'h': buzz(30); break;
+    case 'bomb':
+      buzz([80, 40, 120]);
+      $('tapZone').classList.add('bomb');
+      setTimeout(() => $('tapZone').classList.remove('bomb'), 300);
+      break;
+    case 'p': send({ t: 'q', ts: d.ts }); break;
+    case 'stats':
+      $('sScore').textContent = d.score.toLocaleString();
+      $('sCombo').textContent = d.combo;
+      $('sMine').textContent = d.mine;
+      $('hp').style.width = Math.max(0, d.health) + '%';
+      if (d.state !== gameState) setGameState(d.state);
+      break;
+  }
 }
 
-function send(msg) { if (connected && conn) conn.send(msg); }
-function buzz(ms) { try { navigator.vibrate?.(ms); } catch {} }
+function setGameState(s) {
+  gameState = s;
+  const btn = $('actionBtn');
+  btn.classList.toggle('hidden', s === 'playing' || s === 'countdown');
+  btn.textContent = s === 'over' ? 'PLAY AGAIN' : 'START GAME';
+}
+
+$('actionBtn').addEventListener('click', () => { send({ t: 'start' }); buzz(20); });
+
+function send(msg) { if (connected && conn && conn.open) conn.send(msg); }
+function buzz(pattern) { try { navigator.vibrate?.(pattern); } catch {} }
 function setStatus(html) { $('status').innerHTML = html; }
 
 $('tapZone').addEventListener('pointerdown', () => {
@@ -166,7 +259,11 @@ async function requestWakeLock() {
   try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') requestWakeLock();
+  if (document.visibilityState !== 'visible' || $('pad').classList.contains('hidden')) return;
+  requestWakeLock();
+  // reconnect right away after the phone wakes up, unless an attempt is already underway
+  const busy = connectingSince && Date.now() - connectingSince < 8000;
+  if (!connected && !busy) { retryDelay = 1000; connect(); }
 });
 </script>
 </body>

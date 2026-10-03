@@ -7,13 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --cyan: #5fd4ff; --pink: #ff4f8b; --ink: #e8ecff; --dim: #8a90b8; }
+  :root { --cyan: #5fd4ff; --pink: #ff4f8b; --ink: #e8ecff; --dim: #8a90b8; --panel: rgba(10, 12, 32, .84); --line: rgba(95, 212, 255, .25); }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #04050b; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
   canvas { display: block; }
+  .hidden { display: none !important; }
 
-  #hud { position: fixed; inset: 18px 24px auto 24px; display: flex; justify-content: space-between; pointer-events: none; font-family: Orbitron, sans-serif; }
-  .stat { display: flex; flex-direction: column; gap: 2px; min-width: 160px; }
+  /* HUD */
+  #hud { position: fixed; inset: 18px 24px auto 24px; display: flex; justify-content: space-between; align-items: flex-start; pointer-events: none; font-family: Orbitron, sans-serif; transition: opacity .3s; }
+  #hud.off { opacity: 0; }
+  .stat { display: flex; flex-direction: column; gap: 2px; min-width: 170px; }
   .stat.center { align-items: center; }
   .stat.right { align-items: flex-end; }
   .lbl { font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); font-family: Inter, sans-serif; }
@@ -21,30 +24,69 @@
   #combo { font-size: 44px; font-weight: 900; line-height: 1; text-shadow: 0 0 18px var(--cyan); }
   #mult { font-size: 18px; color: var(--cyan); }
   #acc { font-size: 26px; font-weight: 600; }
+  .bar { width: 240px; height: 8px; margin-top: 10px; border-radius: 4px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+  #healthFill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff4f6e, #ffd34f 45%, #4fffa0); background-size: 240px 100%; transition: width .25s; }
 
   #net { position: fixed; left: 24px; bottom: 16px; font-size: 13px; color: var(--dim); pointer-events: none; }
   #net b { color: var(--ink); font-weight: 600; }
+  #net i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; font-style: normal; }
   #hint { position: fixed; right: 24px; bottom: 16px; font-size: 13px; color: var(--dim); pointer-events: none; }
 
   #vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0; box-shadow: inset 0 0 160px 40px rgba(255, 40, 70, .55); transition: opacity .35s; }
 
-  .pop { position: fixed; transform: translate(-50%, -50%); font-family: Orbitron, sans-serif; font-weight: 900; font-size: 22px; pointer-events: none; animation: pop .7s ease-out forwards; text-shadow: 0 0 12px currentColor; }
+  .pop { position: fixed; transform: translate(-50%, -50%); font-family: Orbitron, sans-serif; font-weight: 900; font-size: 22px; pointer-events: none; animation: pop .8s ease-out forwards; text-shadow: 0 0 12px currentColor; white-space: nowrap; }
+  .pop.small { font-size: 15px; }
+  .pop.big { font-size: 30px; }
   .pop.miss { color: #ff5a6e; font-size: 18px; }
   @keyframes pop { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -60px; } }
 
-  #lobby { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(8, 10, 30, .55), rgba(2, 3, 8, .9)); transition: opacity .4s; }
-  #lobby.hidden { opacity: 0; pointer-events: none; }
-  .card { width: min(420px, calc(100vw - 32px)); padding: 28px 28px 22px; border: 1px solid rgba(95, 212, 255, .25); border-radius: 18px; background: rgba(10, 12, 32, .82); backdrop-filter: blur(8px); text-align: center; box-shadow: 0 0 60px rgba(95, 212, 255, .12); }
-  h1 { margin: 0; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 46px; letter-spacing: .18em; color: #fff; text-shadow: 0 0 22px var(--cyan); }
-  .sub { margin: 4px 0 18px; color: var(--dim); }
+  #banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); font-family: Orbitron, sans-serif; font-weight: 900; font-size: 28px; letter-spacing: .12em; pointer-events: none; opacity: 0; transition: opacity .3s; text-shadow: 0 0 18px currentColor; }
+  #banner.on { opacity: 1; }
+
+  #countdown { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 160px; color: #fff; text-shadow: 0 0 40px var(--cyan); }
+
+  /* panels */
+  .card { padding: 26px 26px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 0 60px rgba(95, 212, 255, .12); }
+  h1 { margin: 0; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 44px; letter-spacing: .18em; color: #fff; text-shadow: 0 0 22px var(--cyan); }
+  h2 { margin: 0 0 6px; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: .12em; }
+  .sub { margin: 4px 0 16px; color: var(--dim); }
+
+  #lobby { position: fixed; left: 28px; top: 50%; transform: translateY(-50%); width: 380px; text-align: center; transition: opacity .4s; }
   #qr { display: inline-block; padding: 10px; background: #fff; border-radius: 12px; min-width: 200px; min-height: 200px; }
-  #qr img { display: block; width: 220px; height: 220px; image-rendering: pixelated; }
-  #code { margin-top: 12px; font-family: Orbitron, sans-serif; font-size: 26px; letter-spacing: .35em; color: var(--cyan); }
-  #url { display: block; margin-top: 4px; font-size: 12px; color: var(--dim); word-break: break-all; }
-  ol { text-align: left; margin: 16px 0 10px; padding-left: 20px; color: #c3c8ea; font-size: 14px; line-height: 1.6; }
-  #lobbyMsg { min-height: 20px; font-size: 14px; color: var(--pink); }
-  button { margin-top: 8px; padding: 10px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .2); background: transparent; color: var(--ink); font: 600 14px Inter, sans-serif; cursor: pointer; }
-  button:hover { border-color: var(--cyan); color: var(--cyan); }
+  #qr img { display: block; width: 200px; height: 200px; image-rendering: pixelated; }
+  #code { margin-top: 10px; font-family: Orbitron, sans-serif; font-size: 26px; letter-spacing: .35em; color: var(--cyan); }
+  #url { display: block; margin-top: 2px; font-size: 11px; color: var(--dim); word-break: break-all; }
+  #players { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 34px; margin: 14px 0 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .15); font-weight: 600; font-size: 14px; }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; }
+  .empty { color: var(--dim); font-size: 14px; padding: 8px; }
+  .steps { text-align: left; margin: 10px 0 8px; padding-left: 20px; color: #c3c8ea; font-size: 13px; line-height: 1.6; }
+  #lobbyMsg { min-height: 18px; font-size: 13px; color: var(--pink); }
+  .row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+  button { padding: 10px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .2); background: transparent; color: var(--ink); font: 600 14px Inter, sans-serif; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+  button.primary { background: var(--cyan); color: #04050b; border-color: var(--cyan); }
+  button.primary:hover:not(:disabled) { color: #04050b; filter: brightness(1.1); }
+  button:disabled { opacity: .4; cursor: default; }
+
+  #results { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2, 3, 8, .6); }
+  #results .card { width: min(520px, calc(100vw - 32px)); text-align: center; }
+  #resScore { font-family: Orbitron, sans-serif; font-size: 52px; font-weight: 900; color: #fff; text-shadow: 0 0 24px var(--cyan); }
+  #resMeta { color: var(--dim); margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th { color: var(--dim); font-weight: 600; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; text-align: right; padding: 6px 8px; }
+  td { padding: 8px; text-align: right; border-top: 1px solid rgba(255, 255, 255, .08); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  td .chip { padding: 2px 10px; }
+
+  #miniJoin { position: fixed; right: 20px; bottom: 44px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  #miniJoin img { width: 74px; height: 74px; display: block; border-radius: 6px; image-rendering: pixelated; }
+  #miniJoin div { font-size: 12px; color: var(--dim); line-height: 1.4; }
+  #miniJoin b { display: block; font-family: Orbitron, sans-serif; color: var(--cyan); font-size: 16px; letter-spacing: .2em; }
+
+  @media (max-width: 860px) {
+    #lobby { left: 50%; transform: translate(-50%, -50%); width: min(380px, calc(100vw - 32px)); }
+  }
 </style>
 <script type="importmap">
 { "imports": {
@@ -56,33 +98,55 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
-<div id="hud">
-  <div class="stat"><span class="lbl">Score</span><span id="score">0</span></div>
-  <div class="stat center"><span id="combo">0</span><span class="lbl">combo</span><span id="mult">x1</span></div>
+<div id="hud" class="off">
+  <div class="stat"><span class="lbl">Team score</span><span id="score">0</span></div>
+  <div class="stat center">
+    <span id="combo">0</span><span class="lbl">combo</span><span id="mult">x1</span>
+    <div class="bar"><div id="healthFill"></div></div>
+  </div>
   <div class="stat right"><span class="lbl">Accuracy</span><span id="acc">-</span></div>
 </div>
 <div id="net">Connecting to server...</div>
-<div id="hint">C / Space: recenter &nbsp;·&nbsp; M: mouse mode</div>
+<div id="hint">Enter: start · C / Space: recenter all · M: mouse player</div>
 <div id="vignette"></div>
 <div id="popups"></div>
+<div id="banner"></div>
+<div id="countdown" class="hidden"></div>
 
-<div id="lobby">
-  <div class="card">
-    <h1>SABR</h1>
-    <p class="sub">Your phone is the saber.</p>
-    <div id="qr"></div>
-    <div id="code">-----</div>
-    <a id="url" target="_blank" rel="noopener"></a>
-    <ol>
-      <li>Scan the code with your phone camera</li>
-      <li>Tap <b>Connect</b> and allow motion access</li>
-      <li>Hold the phone like a sword hilt, top pointing at this screen</li>
-      <li>Swing through the cubes. Tap the phone screen to recenter.</li>
-    </ol>
-    <div id="lobbyMsg"></div>
-    <button id="mouseBtn">Try with mouse</button>
+<div id="lobby" class="card">
+  <h1>SABR</h1>
+  <p class="sub">Your phone is the saber. Up to 4 players.</p>
+  <div id="qr"></div>
+  <div id="code">-----</div>
+  <a id="url" target="_blank" rel="noopener"></a>
+  <div id="players"><span class="empty">No players yet. Scan to join.</span></div>
+  <ol class="steps">
+    <li>Scan with your phone camera, tap <b>Connect</b>, allow motion</li>
+    <li>Hold the phone like a sword hilt, top pointing at this screen</li>
+    <li>Tap the phone screen to recenter. Practice cubes fly while you wait.</li>
+    <li>Arrow cubes: cut in the arrow's direction. Avoid bombs. Gold heals.</li>
+  </ol>
+  <div id="lobbyMsg"></div>
+  <div class="row">
+    <button id="mouseBtn">Add mouse player</button>
+    <button id="startBtn" class="primary" disabled>Start game</button>
   </div>
 </div>
+
+<div id="results" class="hidden">
+  <div class="card">
+    <h2>GAME OVER</h2>
+    <div id="resScore">0</div>
+    <div id="resMeta"></div>
+    <table id="resPlayers"></table>
+    <div class="row">
+      <button id="lobbyBtn">Back to lobby</button>
+      <button id="againBtn" class="primary">Play again</button>
+    </div>
+  </div>
+</div>
+
+<div id="miniJoin" class="hidden"><img id="miniQr" alt="Join QR code"><div>Join anytime<b id="miniCode"></b></div></div>
 
 <script type="module" src="game.js"></script>
 </body>
