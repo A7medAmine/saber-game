@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#04050b">
+<title>Sabr Controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --c: #3fb6ff; --ink: #e8ecff; --dim: #8a90b8; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #04050b; color: var(--ink); font-family: Inter, system-ui, sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); text-align: center; }
+  .hidden { display: none !important; }
+  h1 { margin: 0 0 6px; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 40px; letter-spacing: .18em; text-shadow: 0 0 20px var(--c); }
+  p { color: var(--dim); line-height: 1.5; max-width: 320px; margin: 6px 0; }
+  .room { font-family: Orbitron, sans-serif; letter-spacing: .3em; color: var(--c); font-size: 20px; margin: 10px 0 26px; }
+  #startBtn { width: min(280px, 100%); padding: 20px; border: 0; border-radius: 16px; background: var(--c); color: #04050b; font: 900 20px Orbitron, sans-serif; letter-spacing: .1em; box-shadow: 0 0 40px color-mix(in srgb, var(--c) 60%, transparent); }
+  #err { color: #ff6b81; margin-top: 18px; max-width: 320px; }
+
+  #pad { justify-content: space-between; }
+  #status { font-size: 14px; color: var(--dim); }
+  #status b { color: var(--ink); }
+  #tapZone { flex: 1; width: 100%; margin: 18px 0; border-radius: 24px; border: 2px dashed color-mix(in srgb, var(--c) 45%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; transition: background .15s; }
+  #tapZone.flash { background: color-mix(in srgb, var(--c) 25%, transparent); }
+  #tapZone .big { font-family: Orbitron, sans-serif; font-size: 22px; font-weight: 900; letter-spacing: .12em; color: var(--c); }
+  #blade { width: 10px; height: 90px; border-radius: 6px; background: #fff; box-shadow: 0 0 18px 6px var(--c); transform-origin: 50% 100%; }
+  .swatches { display: flex; gap: 16px; }
+  .sw { width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent; }
+  .sw.on { border-color: #fff; }
+</style>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+<section id="intro" class="screen">
+  <h1>SABR</h1>
+  <p>Your phone becomes the lightsaber.</p>
+  <div class="room" id="roomLbl"></div>
+  <button id="startBtn">CONNECT</button>
+  <p style="margin-top:22px">Hold it tight. A wrist strap is a good idea.</p>
+  <div id="err"></div>
+</section>
+
+<section id="pad" class="screen hidden">
+  <div id="status">Connecting...</div>
+  <div id="tapZone">
+    <div id="blade"></div>
+    <div class="big">TAP TO RECENTER</div>
+    <p>Point the top of the phone at the game screen, then tap.</p>
+  </div>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<script>
+const PEER_PREFIX = 'sabrgamr-';
+const room = (new URLSearchParams(location.search).get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+const $ = (id) => document.getElementById(id);
+let peer = null, conn = null, connected = false, gotSensor = false, sent = 0, wakeLock = null;
+
+$('roomLbl').textContent = room ? 'ROOM ' + room : '';
+if (!room) {
+  $('startBtn').disabled = true;
+  $('err').textContent = 'No room code. Scan the QR code shown on the game screen.';
+}
+if (!window.isSecureContext) {
+  $('err').textContent = 'Motion sensors need HTTPS. Open the deployed https:// link.';
+}
+
+const COLORS = ['#3fb6ff', '#ff3b5c', '#3dff7a', '#b45cff', '#ffb02e'];
+COLORS.forEach((c, i) => {
+  const el = document.createElement('div');
+  el.className = 'sw' + (i === 0 ? ' on' : '');
+  el.style.background = c;
+  el.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.sw').forEach((s) => s.classList.remove('on'));
+    el.classList.add('on');
+    document.documentElement.style.setProperty('--c', c);
+    send({ t: 'c', c });
+  });
+  $('swatches').appendChild(el);
+});
+
+$('startBtn').addEventListener('click', async () => {
+  $('err').textContent = '';
+  try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch {}
+  let permNote = '';
+  try {
+    // iOS 13+ (and some newer browsers) gate motion behind a permission prompt from a user gesture
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const res = await DeviceOrientationEvent.requestPermission();
+      if (res !== 'granted') permNote = 'Motion access was denied. Reload the page and allow it.';
+    }
+  } catch (e) {
+    permNote = 'Could not get motion permission: ' + e.message;
+  }
+  try { screen.orientation?.lock?.('portrait').catch(() => {}); } catch {}
+  requestWakeLock();
+  addEventListener('deviceorientation', onOrientation);
+  $('intro').classList.add('hidden');
+  $('pad').classList.remove('hidden');
+  connect();
+  setTimeout(() => {
+    if (!gotSensor) setStatus('<b>No motion sensor data.</b> ' + (permNote || 'This device or browser may not have a gyroscope.'));
+  }, 2000);
+});
+
+function onOrientation(e) {
+  if (e.alpha == null) return;
+  if (!gotSensor && connected) setStatus('<b>Connected</b> to ' + room);
+  gotSensor = true;
+  if (!connected) return;
+  conn.send({ t: 'o', a: +e.alpha.toFixed(2), b: +e.beta.toFixed(2), g: +e.gamma.toFixed(2) });
+  sent++;
+  $('blade').style.transform = `rotate(${(-e.gamma).toFixed(1)}deg)`;
+}
+
+function connect() {
+  setStatus('Connecting to game <b>' + room + '</b>...');
+  peer = new Peer();
+  peer.on('open', () => {
+    conn = peer.connect(PEER_PREFIX + room, { reliable: false, serialization: 'json' });
+    conn.on('open', () => { connected = true; setStatus('<b>Connected</b> to ' + room); buzz(40); });
+    conn.on('data', onData);
+    conn.on('close', () => {
+      connected = false;
+      setStatus('<b>Disconnected.</b> Reconnecting...');
+      setTimeout(reconnect, 1500);
+    });
+  });
+  peer.on('error', (e) => {
+    connected = false;
+    if (e.type === 'peer-unavailable') setStatus('<b>Game not found.</b> Is the game screen open? Rescan the QR code.');
+    else setStatus('<b>Connection error</b> (' + e.type + '). Retrying...');
+    setTimeout(reconnect, 2500);
+  });
+}
+
+let reconnecting = false;
+function reconnect() {
+  if (reconnecting || connected) return;
+  reconnecting = true;
+  try { peer?.destroy(); } catch {}
+  connect();
+  setTimeout(() => { reconnecting = false; }, 1000);
+}
+
+function onData(d) {
+  if (d.t === 'h') buzz(30);
+  else if (d.t === 'p') send({ t: 'q', ts: d.ts });
+}
+
+function send(msg) { if (connected && conn) conn.send(msg); }
+function buzz(ms) { try { navigator.vibrate?.(ms); } catch {} }
+function setStatus(html) { $('status').innerHTML = html; }
+
+$('tapZone').addEventListener('pointerdown', () => {
+  send({ t: 'r' });
+  buzz(15);
+  $('tapZone').classList.add('flash');
+  setTimeout(() => $('tapZone').classList.remove('flash'), 150);
+});
+
+async function requestWakeLock() {
+  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+</script>
+</body>
+</html>
