@@ -861,7 +861,7 @@ function onMiss(t) {
   game.misses++;
   popupAt('MISS', t.mesh.position.clone().setZ(-0.5), null, 'miss');
   sfxMiss();
-  damage(CFG.dmgMiss);
+  damage(game.songTime < 20 ? CFG.dmgMiss / 2 : CFG.dmgMiss); // gentler warm-up
 }
 
 // ---------------------------------------------------------------- spawning
@@ -875,7 +875,7 @@ function spawnBeat(beatTime) {
   const speed = speedAt(t);
   const z = CFG.hitZ - speed * (beatTime - game.songTime);
   let count = 1;
-  if (Math.random() < Math.min(0.1 + t / 200, 0.4) + (n - 1) * 0.25) count++;
+  if (Math.random() < Math.min(0.1 + t / 200, 0.4) + (n - 1) * 0.15) count++;
   if (n >= 3 && Math.random() < 0.35) count++;
   const lanes = [...laneX].sort(() => Math.random() - 0.5).slice(0, count);
   for (const x of lanes) {

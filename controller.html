@@ -159,7 +159,7 @@ function connect() {
   connected = false;
   connectingSince = Date.now();
   clearTimeout(watchdog);
-  watchdog = setTimeout(() => { if (!connected) lost('Timed out.'); }, 10000);
+  watchdog = setTimeout(() => { if (!connected) lost('Timed out.'); }, 12000);
   setStatus('Connecting to room <b>' + room + '</b>...');
   $('reconnectBtn').classList.remove('alert');
   const myPeer = new Peer();
@@ -172,6 +172,8 @@ function connect() {
       connected = true;
       connectingSince = 0;
       clearTimeout(watchdog);
+      clearTimeout(retryTimer); // a late open beats a pending retry; don't tear down a good link
+      retryTimer = 0;
       retryDelay = 1000;
       c.send({ t: 'hello', pid, color: myColor });
       setStatus('<b>Connected</b> to room ' + room);
@@ -197,7 +199,7 @@ function lost(why) {
   $('reconnectBtn').classList.add('alert');
   setStatus('<b>' + why + '</b> Retrying in ' + Math.round(retryDelay / 1000) + 's...');
   clearTimeout(retryTimer);
-  retryTimer = setTimeout(() => { retryTimer = 0; connect(); }, retryDelay);
+  retryTimer = setTimeout(() => { retryTimer = 0; if (!connected) connect(); }, retryDelay);
   retryDelay = Math.min(retryDelay * 1.6, 8000);
 }
 
