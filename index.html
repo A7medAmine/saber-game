@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sabr Game</title>
+<title>Horizon Blade | AFAQ Scientific Club</title>
+<meta name="description" content="Horizon Blade: a phone-as-lightsaber co-op game by AFAQ Scientific Club.">
+<link rel="icon" type="image/png" href="assets/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --cyan: #5fd4ff; --pink: #ff4f8b; --ink: #e8ecff; --dim: #8a90b8; --panel: rgba(10, 12, 32, .84); --line: rgba(95, 212, 255, .25); }
+  /* AFAQ palette: midnight #050A30, deep blue #12229D, afaq blue #233DFF, sky #5CBCF9, ice #CAE8FF */
+  :root { --cyan: #5cbcf9; --blue: #233dff; --ice: #cae8ff; --pink: #ff4f8b; --ink: #e8f0ff; --dim: #8d9bc8; --panel: rgba(5, 10, 48, .84); --line: rgba(92, 188, 249, .25); }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #04050b; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #02041a; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
   canvas { display: block; }
   .hidden { display: none !important; }
 
@@ -46,8 +51,13 @@
   #countdown { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 160px; color: #fff; text-shadow: 0 0 40px var(--cyan); }
 
   /* panels */
-  .card { padding: 26px 26px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 0 60px rgba(95, 212, 255, .12); }
-  h1 { margin: 0; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 44px; letter-spacing: .18em; color: #fff; text-shadow: 0 0 22px var(--cyan); }
+  .card { padding: 26px 26px 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); backdrop-filter: blur(8px); box-shadow: 0 0 60px rgba(35, 61, 255, .22); }
+  h1 { margin: 0; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 34px; line-height: 1.1; letter-spacing: .16em; color: #fff; text-shadow: 0 0 22px var(--cyan), 0 0 44px var(--blue); }
+  .brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo { width: 64px; height: 64px; filter: drop-shadow(0 0 10px var(--cyan)) drop-shadow(0 0 22px var(--blue)); }
+  .club { font-size: 11px; letter-spacing: .32em; text-transform: uppercase; color: var(--cyan); }
+  #mark { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; font: 600 11px Orbitron, sans-serif; letter-spacing: .22em; color: var(--dim); pointer-events: none; opacity: .75; }
+  #mark img { width: 20px; height: 20px; filter: drop-shadow(0 0 6px var(--cyan)); }
   h2 { margin: 0 0 6px; font-family: Orbitron, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: .12em; }
   .sub { margin: 4px 0 16px; color: var(--dim); }
 
@@ -65,11 +75,11 @@
   .row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
   button { padding: 10px 18px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .2); background: transparent; color: var(--ink); font: 600 14px Inter, sans-serif; cursor: pointer; }
   button:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
-  button.primary { background: var(--cyan); color: #04050b; border-color: var(--cyan); }
-  button.primary:hover:not(:disabled) { color: #04050b; filter: brightness(1.1); }
+  button.primary { background: linear-gradient(90deg, var(--blue), var(--cyan)); color: #fff; border-color: var(--cyan); box-shadow: 0 0 18px rgba(35, 61, 255, .45); }
+  button.primary:hover:not(:disabled) { color: #fff; filter: brightness(1.1); }
   button:disabled { opacity: .4; cursor: default; }
 
-  #results { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2, 3, 8, .6); }
+  #results { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(2, 4, 26, .6); }
   #results .card { width: min(520px, calc(100vw - 32px)); text-align: center; }
   #resScore { font-family: Orbitron, sans-serif; font-size: 52px; font-weight: 900; color: #fff; text-shadow: 0 0 24px var(--cyan); }
   #resMeta { color: var(--dim); margin-bottom: 14px; }
@@ -112,10 +122,15 @@
 <div id="popups"></div>
 <div id="banner"></div>
 <div id="countdown" class="hidden"></div>
+<div id="mark"><img src="assets/afaq-mark-white.svg" alt="">HORIZON BLADE · AFAQ</div>
 
 <div id="lobby" class="card">
-  <h1>SABR</h1>
-  <p class="sub">Your phone is the saber. Up to 4 players.</p>
+  <div class="brand">
+    <img class="logo" src="assets/afaq-mark-white.svg" alt="AFAQ Scientific Club">
+    <h1>HORIZON<br>BLADE</h1>
+    <span class="club">AFAQ Scientific Club</span>
+  </div>
+  <p class="sub">Your phone is the lightsaber. Up to 4 players.</p>
   <div id="qr"></div>
   <div id="code">-----</div>
   <a id="url" target="_blank" rel="noopener"></a>
@@ -135,6 +150,7 @@
 
 <div id="results" class="hidden">
   <div class="card">
+    <img class="logo" src="assets/afaq-mark-white.svg" alt="AFAQ" style="width:44px;height:44px">
     <h2>GAME OVER</h2>
     <div id="resScore">0</div>
     <div id="resMeta"></div>

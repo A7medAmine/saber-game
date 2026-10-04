@@ -39,7 +39,7 @@ const CFG = {
 };
 const BLADE_END = CFG.bladeStart + CFG.bladeLen;
 const BEAT = 60 / CFG.bpm;
-const SLOT_COLORS = ['#3fb6ff', '#ff3b5c', '#3dff7a', '#ffb02e'];
+const SLOT_COLORS = ['#5cbcf9', '#ff3b5c', '#3dff7a', '#ffb02e'];
 let laneX = [-0.5, -0.1, 0.3, 0.7];
 
 // ---------------------------------------------------------------- renderer / scene
@@ -50,15 +50,16 @@ renderer.localClippingEnabled = true;
 document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x04050b);
-scene.fog = new THREE.Fog(0x04050b, 10, 38);
+// AFAQ midnight, pushed darker so the neon still pops
+scene.background = new THREE.Color(0x02041a);
+scene.fog = new THREE.Fog(0x02041a, 10, 38);
 
 const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.05, 200);
 const camPos = new V3(0.1, 1.65, 1.75);
 const camGoal = camPos.clone();
 camera.position.copy(camPos);
 
-scene.add(new THREE.HemisphereLight(0x8899ff, 0x120022, 0.7));
+scene.add(new THREE.HemisphereLight(0x8fa6ff, 0x050a30, 0.7));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(2, 5, 3);
 scene.add(sun);
@@ -77,20 +78,25 @@ addEventListener('resize', () => {
 
 // ---------------------------------------------------------------- environment
 const arches = [];
-const RAIL_BASE = new THREE.Color(0.3, 0.7, 2.4);
-const ARCH_BASE = new THREE.Color(0.55, 0.1, 0.8);
+const RAIL_BASE = new THREE.Color(0.36, 0.74, 2.4); // AFAQ sky
+const ARCH_BASE = new THREE.Color(0.14, 0.24, 1.6); // AFAQ blue
+const EMBLEM_BASE = new THREE.Color(0.5, 0.8, 2.2);
 const railMat = new THREE.MeshBasicMaterial({ color: RAIL_BASE.clone(), toneMapped: false });
 const archMat = new THREE.MeshBasicMaterial({ color: ARCH_BASE.clone(), toneMapped: false });
+const emblemMat = new THREE.MeshBasicMaterial({
+  color: EMBLEM_BASE.clone(), transparent: true, depthWrite: false, fog: false, toneMapped: false,
+  map: new THREE.TextureLoader().load('assets/afaq-mark-white-1024.png', (t) => { t.colorSpace = THREE.SRGBColorSpace; }),
+});
 (function buildEnvironment() {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(60, 120),
-    new THREE.MeshStandardMaterial({ color: 0x07081a, roughness: 0.35, metalness: 0.7 }),
+    new THREE.MeshStandardMaterial({ color: 0x040824, roughness: 0.35, metalness: 0.7 }),
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.z = -40;
   scene.add(floor);
 
-  const grid = new THREE.GridHelper(120, 120, 0x2b2f7a, 0x14173a);
+  const grid = new THREE.GridHelper(120, 120, 0x1f34d8, 0x0d1660);
   grid.position.set(0, 0.002, -40);
   scene.add(grid);
 
@@ -122,7 +128,13 @@ const archMat = new THREE.MeshBasicMaterial({ color: ARCH_BASE.clone(), toneMapp
   }
   const starGeo = new THREE.BufferGeometry();
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x9aa4ff, size: 0.25, fog: false })));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xcae8ff, size: 0.25, fog: false })));
+
+  // AFAQ mark rising over the horizon, past the end of the arch tunnel
+  const emblem = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), emblemMat);
+  emblem.position.set(0.1, 9, -75);
+  emblem.renderOrder = -1;
+  scene.add(emblem);
 })();
 
 // ---------------------------------------------------------------- sabers
@@ -1150,7 +1162,7 @@ function step(dt) {
       $('countdown').textContent = left > 0 ? left : 'GO';
       if (game.songTime >= 0) {
         setState('playing');
-        banner('GO!', '#5fd4ff');
+        banner('GO!', '#5cbcf9');
       }
     }
   }
@@ -1184,6 +1196,7 @@ function step(dt) {
   const pulse = playing ? Math.exp(-phase * 5) : 0;
   railMat.color.copy(RAIL_BASE).multiplyScalar(1 + pulse * 0.8);
   archMat.color.copy(ARCH_BASE).multiplyScalar(1 + pulse * 1.2);
+  emblemMat.color.copy(EMBLEM_BASE).multiplyScalar(1 + pulse * 0.6);
   const archSpeed = game.state === 'playing' ? 4 : 1.2;
   for (const a of arches) {
     a.position.z += archSpeed * dt;

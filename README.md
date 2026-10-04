@@ -1,6 +1,6 @@
-# Sabr: phone-as-lightsaber co-op game
+# Horizon Blade: phone-as-lightsaber co-op game
 
-The big screen runs the game. Up to 4 players scan the QR code, and each phone becomes a saber using its gyroscope.
+A game by AFAQ Scientific Club. The big screen runs the game. Up to 4 players scan the QR code, and each phone becomes a saber using its gyroscope.
 
 - `index.html` + `game.js`: the game screen (Three.js, bloom, slicing, synthesized music and sound effects)
 - `controller.html`: the phone controller page (sends device orientation, shows team stats)
