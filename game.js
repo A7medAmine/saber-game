@@ -1202,7 +1202,7 @@ function calOnStatus(m) {
     $('calText').textContent = m.text;
     go.disabled = false;
   } else if (m.st === 'ok') {
-    $('calText').textContent = 'Captured ✓';
+    $('calText').textContent = '✓ ' + (m.text || 'Captured');
     go.disabled = true;
   } else if (m.st === 'error' || m.st === 'failed') {
     $('calText').textContent = m.text;
