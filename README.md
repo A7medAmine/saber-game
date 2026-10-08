@@ -26,6 +26,13 @@ npx vercel --prod
 Local preview (game screen + mouse player only): `npx http-server -p 5173` and open http://localhost:5173.
 Add `?debug` to expose `window.__sabr` for console testing.
 
+## Hardware controller (ESP8266 + ADXL345)
+
+A physical tilt-saber can join as a player over WiFi. It needs the local bridge server (not Vercel):
+see https://github.com/A7medAmine/saber-game-eps-bridge for the firmware, the bridge server, wiring, build and test steps.
+`game.js` opens `ws://<host>/ws?role=game` only when the page is served from localhost or a LAN address, and treats each ESP as one more player.
+Run it with `npm start` in the bridge folder and open http://localhost:5173.
+
 ## Controls
 
 - Phone: hold it like a sword hilt with the top pointing at the screen. Tap the phone screen to recenter. START / PLAY AGAIN buttons, color dots, Reconnect button.
