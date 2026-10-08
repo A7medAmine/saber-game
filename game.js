@@ -1116,6 +1116,7 @@ function updatePlayerUi() {
     : '<span class="empty">No players yet. Scan to join.</span>';
   $('startBtn').disabled = !list.length;
   $('mouseBtn').textContent = players.get('mouse')?.saber ? 'Remove mouse player' : 'Add mouse player';
+  updateCalBtn();
   updateNetHud();
 }
 
@@ -1144,6 +1145,7 @@ addEventListener('keydown', (e) => {
   unlockAudio();
   if (e.code === 'KeyC' || e.code === 'Space') { e.preventDefault(); recenterAll(); }
   if (e.code === 'KeyM') toggleMousePlayer();
+  if (e.code === 'KeyN' && !$('calPanel').classList.contains('hidden')) calGo();
   if (e.code === 'Enter') requestStart();
   if (e.code === 'Escape' && game.state !== 'lobby') toLobby();
 });
@@ -1177,9 +1179,75 @@ function hwPlayer(id) {
     // game-side yaw calibration; otherwise a keyboard recenter would shift a tilted stick's "forward".
     p.saber.needCalib = false;
     p.saber.recenter = () => {};
+    updateCalBtn();
   }
   return p;
 }
+
+// ---- controller calibration (ESP8266 accelerometer): guided from this page
+let calId = null, calTimer = 0;
+function hwId() {
+  const p = activePlayers().find((q) => q.hw);
+  return p ? p.pid.slice(3) : calId;
+}
+function updateCalBtn() { $('calBtn').classList.toggle('hidden', !activePlayers().some((p) => p.hw)); }
+function calShow(on) { $('calPanel').classList.toggle('hidden', !on); }
+function calOnStatus(m) {
+  clearInterval(calTimer);
+  $('calCount').textContent = '';
+  const go = $('calGo');
+  if (m.st === 'prompt') {
+    calShow(true);
+    $('calStep').textContent = `Step ${m.step} of 6`;
+    $('calText').textContent = m.text;
+    go.disabled = false;
+  } else if (m.st === 'ok') {
+    $('calText').textContent = 'Captured ✓';
+    go.disabled = true;
+  } else if (m.st === 'error' || m.st === 'failed') {
+    $('calText').textContent = m.text;
+    go.disabled = m.st === 'failed';
+    if (m.st === 'failed') setTimeout(() => calShow(false), 3000);
+  } else if (m.st === 'done') {
+    $('calStep').textContent = 'Done';
+    $('calText').textContent = 'Calibration saved on the controller ✓';
+    go.disabled = true;
+    banner('Controller calibrated', '#4fffa0');
+    setTimeout(() => calShow(false), 1800);
+  } else if (m.st === 'cancel') {
+    calShow(false);
+  }
+}
+function calGo() {
+  const go = $('calGo');
+  if (go.disabled) return;
+  go.disabled = true;
+  let n = 3;
+  $('calCount').textContent = n;
+  clearInterval(calTimer);
+  calTimer = setInterval(() => {
+    n--;
+    if (n > 0) { $('calCount').textContent = n; return; }
+    clearInterval(calTimer);
+    $('calCount').textContent = 'Hold still...';
+    bridgeSend({ t: 'cal-next', id: hwId() });
+  }, 1000);
+}
+$('calBtn').addEventListener('click', () => {
+  const id = hwId();
+  if (!id) return;
+  $('calStep').textContent = 'Starting...';
+  $('calText').textContent = 'Waiting for the controller...';
+  $('calGo').disabled = true;
+  calShow(true);
+  bridgeSend({ t: 'cal-start', id });
+});
+$('calGo').addEventListener('click', calGo);
+$('calCancel').addEventListener('click', () => {
+  clearInterval(calTimer);
+  bridgeSend({ t: 'cal-cancel', id: hwId() });
+  calShow(false);
+});
 
 function startBridge() {
   if (!BRIDGE_HOST) return;
@@ -1190,6 +1258,7 @@ function startBridge() {
     let m;
     try { m = JSON.parse(ev.data); } catch { return; }
     if (!m || !m.id) return;
+    if (m.t === 'cal') { calId = m.id; calOnStatus(m); return; }
     if (m.t === 'ctrl-join') { hwPlayer(m.id); return; }
     if (m.t === 'ctrl-leave') {
       const p = players.get('hw-' + m.id);

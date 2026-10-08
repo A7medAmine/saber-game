@@ -28,10 +28,11 @@ Add `?debug` to expose `window.__sabr` for console testing.
 
 ## Hardware controller (ESP8266 + ADXL345)
 
-A physical tilt-saber can join as a player over WiFi. It needs the local bridge server (not Vercel):
+A physical tilt-saber can join as a player over USB cable or WiFi. It needs the local bridge server (not Vercel):
 see https://github.com/A7medAmine/saber-game-eps-bridge for the firmware, the bridge server, wiring, build and test steps.
 `game.js` opens `ws://<host>/ws?role=game` only when the page is served from localhost or a LAN address, and treats each ESP as one more player.
 Run it with `npm start` in the bridge folder and open http://localhost:5173.
+When a controller is connected, a **Calibrate controller** button appears in the lobby and guides you through the 6-position accelerometer calibration.
 
 ## Controls
 

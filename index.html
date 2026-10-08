@@ -94,6 +94,11 @@
   #miniJoin div { font-size: 12px; color: var(--dim); line-height: 1.4; }
   #miniJoin b { display: block; font-family: Orbitron, sans-serif; color: var(--cyan); font-size: 16px; letter-spacing: .2em; }
 
+
+  #calPanel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); text-align: center; z-index: 5; }
+  #calCount { min-height: 70px; font: 900 56px Orbitron, sans-serif; color: #fff; text-shadow: 0 0 24px var(--cyan); }
+  #calText { color: var(--ink); font-size: 17px; line-height: 1.5; margin: 8px 0 4px; }
+
   @media (max-width: 860px) {
     #lobby { left: 50%; transform: translate(-50%, -50%); width: min(380px, calc(100vw - 32px)); }
   }
@@ -144,8 +149,22 @@
   <div id="lobbyMsg"></div>
   <div class="row">
     <button id="mouseBtn">Add mouse player</button>
+    <button id="calBtn" class="hidden">Calibrate controller</button>
     <button id="startBtn" class="primary" disabled>Start game</button>
   </div>
+</div>
+
+
+<div id="calPanel" class="card hidden">
+  <h2>CALIBRATE CONTROLLER</h2>
+  <div id="calStep" class="lbl">Step 1 of 6</div>
+  <div id="calText"></div>
+  <div id="calCount"></div>
+  <div class="row">
+    <button id="calCancel">Cancel</button>
+    <button id="calGo" class="primary">Ready. Capture in 3 s</button>
+  </div>
+  <p class="sub" style="margin:12px 0 0;font-size:12px">Place the board still in the position shown (rest it on a table edge), click Ready (or press N), and do not move it until it says Captured.</p>
 </div>
 
 <div id="results" class="hidden">
