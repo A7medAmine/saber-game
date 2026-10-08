@@ -1148,6 +1148,66 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && game.state !== 'lobby') toLobby();
 });
 
+// ---------------------------------------------------------------- hardware controllers (ESP8266 via the local bridge)
+// Only active when the page is served from localhost / a LAN address by bridge/server.js.
+// The ESP sends the same messages a phone does ('o' orientation, 'r' recenter, 'start'),
+// so each ESP simply becomes one more player.
+const BRIDGE_HOST = /^(localhost|127\.|\[::1\]|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
+let bridgeWs = null;
+
+function bridgeSend(msg) {
+  if (bridgeWs && bridgeWs.readyState === 1) bridgeWs.send(JSON.stringify(msg));
+}
+
+function hwPlayer(id) {
+  const pid = 'hw-' + id;
+  let p = players.get(pid);
+  if (p && p.saber && p.conn) return p;
+  const conn = {
+    open: true,
+    // haptic events from the game are forwarded to the ESP (it blinks its LED)
+    send(m) { if (m && (m.t === 'h' || m.t === 'bomb')) bridgeSend({ t: m.t, id }); },
+    close() {},
+  };
+  p = addPlayer(pid, null, conn);
+  if (p) {
+    connPlayer.set(conn, p);
+    p.hw = true;
+    // The ESP already reports angles relative to its own zero (recenter button), so skip the
+    // game-side yaw calibration; otherwise a keyboard recenter would shift a tilted stick's "forward".
+    p.saber.needCalib = false;
+    p.saber.recenter = () => {};
+  }
+  return p;
+}
+
+function startBridge() {
+  if (!BRIDGE_HOST) return;
+  let ws;
+  try { ws = new WebSocket(`ws://${location.host}/ws?role=game`); } catch { return; }
+  bridgeWs = ws;
+  ws.onmessage = (ev) => {
+    let m;
+    try { m = JSON.parse(ev.data); } catch { return; }
+    if (!m || !m.id) return;
+    if (m.t === 'ctrl-join') { hwPlayer(m.id); return; }
+    if (m.t === 'ctrl-leave') {
+      const p = players.get('hw-' + m.id);
+      if (p && p.saber) {
+        p.conn = null; // same grace period as a dropped phone
+        clearTimeout(p.dropTimer);
+        p.dropTimer = setTimeout(() => { if (!p.conn) removePlayer(p); }, 4000);
+      }
+      return;
+    }
+    const p = hwPlayer(m.id);
+    if (p) onData(p, m);
+  };
+  ws.onclose = () => { if (bridgeWs === ws) bridgeWs = null; setTimeout(startBridge, 3000); };
+  ws.onerror = () => { try { ws.close(); } catch {} };
+}
+
+startBridge();
 startHost();
 relayout();
 
