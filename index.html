@@ -100,6 +100,8 @@
   .calTile { border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 4px 4px 6px; background: rgba(255,255,255,.04); position: relative; }
   .calTile svg { width: 100%; height: auto; display: block; }
   .calTile span { display: block; font-size: 11px; line-height: 1.25; color: var(--dim); }
+  #calPanel.quick #calTiles { grid-template-columns: 1fr; max-width: 300px; margin-left: auto; margin-right: auto; }
+  #calPanel.quick .calTile:not([data-side="2"]) { display: none; }
   .calTile.next { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,.35); }
   .calTile.next span { color: var(--ink); }
   .calTile.done { opacity: .55; border-color: #4fffa0; }
@@ -158,6 +160,7 @@
   <div class="row">
     <button id="mouseBtn">Add mouse player</button>
     <button id="calBtn" class="hidden">Calibrate controller</button>
+    <button id="calQuickBtn" class="hidden">Quick calibrate (lay flat)</button>
     <button id="startBtn" class="primary" disabled>Start game</button>
   </div>
 </div>

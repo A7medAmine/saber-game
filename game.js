@@ -1190,8 +1190,9 @@ function hwId() {
   const p = activePlayers().find((q) => q.hw);
   return p ? p.pid.slice(3) : calId;
 }
-function updateCalBtn() { $('calBtn').classList.toggle('hidden', !activePlayers().some((p) => p.hw)); }
-function calShow(on) { $('calPanel').classList.toggle('hidden', !on); }
+function updateCalBtn() { const hw = activePlayers().some((p) => p.hw); $('calBtn').classList.toggle('hidden', !hw); $('calQuickBtn').classList.toggle('hidden', !hw); }
+let calQuick = false;
+function calShow(on) { $('calPanel').classList.toggle('hidden', !on); if (!on) { calQuick = false; $('calPanel').classList.remove('quick'); } }
 // ---- calibration pictures: the whole controller (breadboard + NodeMCU + ADXL345) in each of the 6 resting positions
 const CAL_SIDES = [
   { name: 'X arrow up',     rot: 0,   t: 'Standing up', hint: 'X arrow points to the ceiling' },
@@ -1263,6 +1264,7 @@ function calOnStatus(m) {
   $('calCount').textContent = '';
   const go = $('calGo');
   if (m.st === 'prompt') {
+    calQuick = false; $('calPanel').classList.remove('quick');
     calShow(true);
     $('calStep').textContent = `Step ${m.step} of 6`;
     $('calText').textContent = m.text;
@@ -1301,9 +1303,22 @@ function calGo() {
     if (n > 0) { $('calCount').textContent = n; return; }
     clearInterval(calTimer);
     $('calCount').textContent = 'Hold still...';
-    bridgeSend({ t: 'cal-next', id: hwId() });
+    bridgeSend({ t: calQuick ? 'cal-quick' : 'cal-next', id: hwId() });
   }, 1000);
 }
+$('calQuickBtn').addEventListener('click', () => {
+  if (!hwId()) return;
+  calDone.clear(); calMarkTiles('chip face up');
+  calQuick = true;
+  $('calPanel').classList.add('quick');
+  $('calStep').textContent = 'Quick calibration (1 position)';
+  $('calText').textContent = 'Put the controller flat on the table with the ADXL345 chip facing the ceiling. Do not touch it, then click Ready.';
+  $('calCount').textContent = '';
+  $('calGo').disabled = false;
+  calShow(true);
+  $('calPanel').classList.add('quick');
+  calQuick = true;
+});
 $('calBtn').addEventListener('click', () => {
   const id = hwId();
   if (!id) return;
