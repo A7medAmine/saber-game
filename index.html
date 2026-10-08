@@ -95,7 +95,15 @@
   #miniJoin b { display: block; font-family: Orbitron, sans-serif; color: var(--cyan); font-size: 16px; letter-spacing: .2em; }
 
 
-  #calPanel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); text-align: center; z-index: 5; }
+  #calPanel { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(540px, calc(100vw - 32px)); text-align: center; z-index: 5; }
+  #calTiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 4px; }
+  .calTile { border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 4px 4px 6px; background: rgba(255,255,255,.04); position: relative; }
+  .calTile svg { width: 100%; height: auto; display: block; }
+  .calTile span { display: block; font-size: 11px; line-height: 1.25; color: var(--dim); }
+  .calTile.next { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,.35); }
+  .calTile.next span { color: var(--ink); }
+  .calTile.done { opacity: .55; border-color: #4fffa0; }
+  .calTile.done::after { content: '\2713'; position: absolute; top: 2px; right: 6px; color: #4fffa0; font-weight: 900; font-size: 18px; }
   #calCount { min-height: 70px; font: 900 56px Orbitron, sans-serif; color: #fff; text-shadow: 0 0 24px var(--cyan); }
   #calText { color: var(--ink); font-size: 17px; line-height: 1.5; margin: 8px 0 4px; }
 
@@ -158,6 +166,7 @@
 <div id="calPanel" class="card hidden">
   <h2>CALIBRATE CONTROLLER</h2>
   <div id="calStep" class="lbl">Step 1 of 6</div>
+  <div id="calTiles"></div>
   <div id="calText"></div>
   <div id="calCount"></div>
   <div class="row">

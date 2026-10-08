@@ -1192,6 +1192,49 @@ function hwId() {
 }
 function updateCalBtn() { $('calBtn').classList.toggle('hidden', !activePlayers().some((p) => p.hw)); }
 function calShow(on) { $('calPanel').classList.toggle('hidden', !on); }
+// ---- calibration pictures: the board + breadboard in each of the 6 resting positions
+const CAL_SIDES = [
+  { name: 'X arrow up',     rot: 0,   flip: false, hint: 'Stand it on its edge, chip toward you, X arrow to the ceiling' },
+  { name: 'Y arrow up',     rot: 90,  flip: false, hint: 'Stand it on its edge, chip toward you, Y arrow to the ceiling' },
+  { name: 'chip face up',   rot: 0,   flip: false, flat: true, hint: 'Lay it flat on the table, chip facing the ceiling' },
+  { name: 'X arrow down',   rot: 180, flip: false, hint: 'Stand it on its edge, chip toward you, X arrow to the floor' },
+  { name: 'Y arrow down',   rot: -90, flip: false, hint: 'Stand it on its edge, chip toward you, Y arrow to the floor' },
+  { name: 'chip face down', rot: 0,   flip: true,  flat: true, hint: 'Flip it over, chip facing the table' },
+];
+const calDone = new Set();
+function calAssembly(flip) {
+  let holes = '';
+  for (let x = -44; x <= 16; x += 6) for (let y = -9; y <= 9; y += 6) holes += `<circle cx="${x}" cy="${y}" r="1" fill="#9aa"/>`;
+  const chip = flip ? '<rect x="32" y="-6" width="10" height="10" rx="1" fill="none" stroke="#fff" stroke-dasharray="2 2" opacity=".6"/>'
+                    : '<rect x="32" y="-6" width="10" height="10" rx="1" fill="#111"/>';
+  return `<g ${flip ? 'transform="scale(-1,1)"' : ''}>
+    <rect x="-48" y="-14" width="70" height="28" rx="3" fill="#e9eef0"/>${holes}
+    <rect x="24" y="-16" width="26" height="32" rx="2" fill="#2f6fb5"/>${chip}
+    <path d="M44 12V-12m0 0l-3 5m3-5l3 5" stroke="#ffd34d" stroke-width="1.6" fill="none"/>
+    <path d="M40 13H28m0 0l5-3m-5 3l5 3" stroke="#ff7a7a" stroke-width="1.6" fill="none"/>
+    <text x="48" y="-20" font-size="7" fill="#ffd34d" font-family="sans-serif">X</text>
+    <text x="22" y="22" font-size="7" fill="#ff7a7a" font-family="sans-serif">Y</text></g>`;
+}
+function calBuildTiles() {
+  $('calTiles').innerHTML = CAL_SIDES.map((s, i) => {
+    const body = s.flat
+      ? `<line x1="-60" y1="22" x2="60" y2="22" stroke="#8899aa" stroke-width="2"/>
+         <rect x="-48" y="${s.flip ? 6 : 12}" width="70" height="${s.flip ? 16 : 10}" rx="2" fill="#e9eef0"/>
+         <rect x="24" y="${s.flip ? 9 : 16}" width="26" height="6" fill="#2f6fb5"/>
+         <rect x="32" y="${s.flip ? 15 : 10}" width="10" height="${s.flip ? 7 : 6}" fill="${s.flip ? '#111' : '#111'}"/>
+         <text x="-6" y="-8" text-anchor="middle" font-size="10" fill="#fff" font-family="sans-serif">${s.flip ? 'chip touches the table' : 'chip faces the ceiling'}</text>`
+      : `<g transform="rotate(${s.rot}) scale(.6)">${calAssembly(false)}</g>`;
+    return `<div class="calTile" data-side="${i}"><svg viewBox="-62 -36 124 72">${body}</svg><span><b>${i + 1}.</b> ${s.hint}</span></div>`;
+  }).join('');
+}
+function calMarkTiles(nextText) {
+  document.querySelectorAll('.calTile').forEach((el) => {
+    const s = CAL_SIDES[+el.dataset.side];
+    el.classList.toggle('done', calDone.has(s.name));
+    el.classList.toggle('next', !calDone.has(s.name) && !!nextText && nextText.includes(s.name));
+  });
+}
+calBuildTiles();
 function calOnStatus(m) {
   clearInterval(calTimer);
   $('calCount').textContent = '';
@@ -1200,9 +1243,13 @@ function calOnStatus(m) {
     calShow(true);
     $('calStep').textContent = `Step ${m.step} of 6`;
     $('calText').textContent = m.text;
+    if (m.step === 1) calDone.clear();
+    calMarkTiles(m.text);
     go.disabled = false;
   } else if (m.st === 'ok') {
     $('calText').textContent = '✓ ' + (m.text || 'Captured');
+    const cap = CAL_SIDES.find((s) => (m.text || '').includes(s.name));
+    if (cap) { calDone.add(cap.name); calMarkTiles(''); }
     go.disabled = true;
   } else if (m.st === 'error' || m.st === 'failed') {
     $('calText').textContent = m.text;
@@ -1210,6 +1257,7 @@ function calOnStatus(m) {
     if (m.st === 'failed') setTimeout(() => calShow(false), 3000);
   } else if (m.st === 'done') {
     $('calStep').textContent = 'Done';
+    CAL_SIDES.forEach((s) => calDone.add(s.name)); calMarkTiles('');
     $('calText').textContent = 'Calibration saved on the controller ✓';
     go.disabled = true;
     banner('Controller calibrated', '#4fffa0');
@@ -1236,6 +1284,7 @@ function calGo() {
 $('calBtn').addEventListener('click', () => {
   const id = hwId();
   if (!id) return;
+  calDone.clear(); calMarkTiles('');
   $('calStep').textContent = 'Starting...';
   $('calText').textContent = 'Waiting for the controller...';
   $('calGo').disabled = true;
