@@ -1192,39 +1192,62 @@ function hwId() {
 }
 function updateCalBtn() { $('calBtn').classList.toggle('hidden', !activePlayers().some((p) => p.hw)); }
 function calShow(on) { $('calPanel').classList.toggle('hidden', !on); }
-// ---- calibration pictures: the board + breadboard in each of the 6 resting positions
+// ---- calibration pictures: the whole controller (breadboard + NodeMCU + ADXL345) in each of the 6 resting positions
 const CAL_SIDES = [
-  { name: 'X arrow up',     rot: 0,   flip: false, hint: 'Stand it on its edge, chip toward you, X arrow to the ceiling' },
-  { name: 'Y arrow up',     rot: 90,  flip: false, hint: 'Stand it on its edge, chip toward you, Y arrow to the ceiling' },
-  { name: 'chip face up',   rot: 0,   flip: false, flat: true, hint: 'Lay it flat on the table, chip facing the ceiling' },
-  { name: 'X arrow down',   rot: 180, flip: false, hint: 'Stand it on its edge, chip toward you, X arrow to the floor' },
-  { name: 'Y arrow down',   rot: -90, flip: false, hint: 'Stand it on its edge, chip toward you, Y arrow to the floor' },
-  { name: 'chip face down', rot: 0,   flip: true,  flat: true, hint: 'Flip it over, chip facing the table' },
+  { name: 'X arrow up',     rot: 0,   t: 'Standing up', hint: 'X arrow points to the ceiling' },
+  { name: 'Y arrow up',     rot: 90,  t: 'Standing up', hint: 'Y arrow points to the ceiling' },
+  { name: 'chip face up',   flat: 'up',   t: 'Lying flat', hint: 'Chip faces the ceiling' },
+  { name: 'X arrow down',   rot: 180, t: 'Standing up', hint: 'X arrow points to the floor' },
+  { name: 'Y arrow down',   rot: -90, t: 'Standing up', hint: 'Y arrow points to the floor' },
+  { name: 'chip face down', flat: 'down', t: 'Upside down', hint: 'Chip faces the table' },
 ];
 const calDone = new Set();
-function calAssembly(flip) {
+// front view of the controller (we look at the side that has the parts on it)
+function calAssembly() {
   let holes = '';
-  for (let x = -44; x <= 16; x += 6) for (let y = -9; y <= 9; y += 6) holes += `<circle cx="${x}" cy="${y}" r="1" fill="#9aa"/>`;
-  const chip = flip ? '<rect x="32" y="-6" width="10" height="10" rx="1" fill="none" stroke="#fff" stroke-dasharray="2 2" opacity=".6"/>'
-                    : '<rect x="32" y="-6" width="10" height="10" rx="1" fill="#111"/>';
-  return `<g ${flip ? 'transform="scale(-1,1)"' : ''}>
-    <rect x="-48" y="-14" width="70" height="28" rx="3" fill="#e9eef0"/>${holes}
-    <rect x="24" y="-16" width="26" height="32" rx="2" fill="#2f6fb5"/>${chip}
-    <path d="M44 12V-12m0 0l-3 5m3-5l3 5" stroke="#ffd34d" stroke-width="1.6" fill="none"/>
-    <path d="M40 13H28m0 0l5-3m-5 3l5 3" stroke="#ff7a7a" stroke-width="1.6" fill="none"/>
-    <text x="48" y="-20" font-size="7" fill="#ffd34d" font-family="sans-serif">X</text>
-    <text x="22" y="22" font-size="7" fill="#ff7a7a" font-family="sans-serif">Y</text></g>`;
+  for (let x = -57; x <= 57; x += 6) for (const y of [-25, -19, 19, 25]) holes += `<circle cx="${x}" cy="${y}" r="1" fill="#8a9aa4"/>`;
+  return `
+    <rect x="-60" y="-28" width="120" height="56" rx="4" fill="#eef2f4" stroke="#b9c4ca"/>${holes}
+    <rect x="-60" y="-1" width="120" height="2" fill="#c5d0d6"/>
+    <rect x="-58" y="-13" width="52" height="26" rx="2" fill="#1d2430"/>
+    <rect x="-62" y="-5" width="7" height="10" rx="1" fill="#c9ced4"/>
+    <rect x="-44" y="-10" width="22" height="20" rx="1" fill="#9aa3ad"/>
+    <text x="-33" y="3" text-anchor="middle" font-size="6" fill="#222" font-family="sans-serif" font-weight="700">ESP</text>
+    <text x="-20" y="22" font-size="5" fill="#222" font-family="sans-serif">NodeMCU</text>
+    <path d="M-6 -6C4 -6 6 -9 18 -9M-6 -2C4 -2 6 -3 18 -3M-6 2C4 2 6 3 18 3M-6 6C4 6 6 9 18 9" stroke="#e0a030" stroke-width="1.3" fill="none"/>
+    <rect x="16" y="-18" width="38" height="36" rx="2" fill="#2f6fb5" stroke="#1d4f86"/>
+    <rect x="30" y="-6" width="10" height="10" rx="1" fill="#111"/>
+    <text x="35" y="12" text-anchor="middle" font-size="5" fill="#fff" font-family="sans-serif">ADXL345</text>
+    <path d="M47 14V-12m0 0l-3.5 6m3.5-6l3.5 6" stroke="#ffd34d" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="49.5" y="-14" font-size="7" fill="#ffd34d" font-family="sans-serif" font-weight="700">X</text>
+    <path d="M42 15H22m0 0l6-3.5m-6 3.5l6 3.5" stroke="#ff7a7a" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="17" y="24" font-size="7" fill="#ff7a7a" font-family="sans-serif" font-weight="700">Y</text>`;
+}
+function calFlatSide(down) {
+  const wood = '<rect x="-80" y="48" width="160" height="6" fill="#7a5c3a"/>';
+  const up = `${wood}
+    <rect x="-60" y="34" width="120" height="14" rx="2" fill="#eef2f4" stroke="#b9c4ca"/>
+    <rect x="-58" y="29" width="52" height="5" fill="#1d2430"/><rect x="-62" y="30" width="6" height="4" fill="#c9ced4"/>
+    <rect x="16" y="30" width="38" height="4" fill="#2f6fb5"/><rect x="30" y="25" width="10" height="5" fill="#111"/>
+    <path d="M35 20V2m0 0l-4 6m4-6l4 6" stroke="#4fffa0" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <text x="35" y="-4" text-anchor="middle" font-size="9" fill="#4fffa0" font-family="sans-serif" font-weight="700">chip faces up</text>`;
+  const dn = `${wood}
+    <rect x="-60" y="20" width="120" height="14" rx="2" fill="#eef2f4" stroke="#b9c4ca"/>
+    <rect x="-58" y="34" width="52" height="5" fill="#1d2430"/><rect x="-62" y="35" width="6" height="4" fill="#c9ced4"/>
+    <rect x="16" y="34" width="38" height="4" fill="#2f6fb5"/><rect x="30" y="38" width="10" height="10" fill="#111"/>
+    <path d="M35 8V30m0 0l-4-6m4 6l4-6" stroke="#4fffa0" stroke-width="2.4" fill="none" stroke-linecap="round" transform="translate(0,-4)"/>
+    <text x="35" y="2" text-anchor="middle" font-size="9" fill="#4fffa0" font-family="sans-serif" font-weight="700">chip faces the table</text>`;
+  return down ? dn : up;
 }
 function calBuildTiles() {
   $('calTiles').innerHTML = CAL_SIDES.map((s, i) => {
     const body = s.flat
-      ? `<line x1="-60" y1="22" x2="60" y2="22" stroke="#8899aa" stroke-width="2"/>
-         <rect x="-48" y="${s.flip ? 6 : 12}" width="70" height="${s.flip ? 16 : 10}" rx="2" fill="#e9eef0"/>
-         <rect x="24" y="${s.flip ? 9 : 16}" width="26" height="6" fill="#2f6fb5"/>
-         <rect x="32" y="${s.flip ? 15 : 10}" width="10" height="${s.flip ? 7 : 6}" fill="${s.flip ? '#111' : '#111'}"/>
-         <text x="-6" y="-8" text-anchor="middle" font-size="10" fill="#fff" font-family="sans-serif">${s.flip ? 'chip touches the table' : 'chip faces the ceiling'}</text>`
-      : `<g transform="rotate(${s.rot}) scale(.6)">${calAssembly(false)}</g>`;
-    return `<div class="calTile" data-side="${i}"><svg viewBox="-62 -36 124 72">${body}</svg><span><b>${i + 1}.</b> ${s.hint}</span></div>`;
+      ? `<g transform="translate(0,-14)">${calFlatSide(s.flat === 'down')}</g>
+         <path d="M-84 -56v26m0 0l-4-6m4 6l4-6" stroke="#9ab" stroke-width="1.5" fill="none"/><text x="-78" y="-40" font-size="7" fill="#9ab" font-family="sans-serif">gravity</text>`
+      : `<rect x="-90" y="52" width="180" height="6" fill="#7a5c3a"/>
+         <g transform="translate(0,-4) rotate(${s.rot}) scale(.78)">${calAssembly()}</g>
+         <path d="M-84 -56v26m0 0l-4-6m4 6l4-6" stroke="#9ab" stroke-width="1.5" fill="none"/><text x="-78" y="-40" font-size="7" fill="#9ab" font-family="sans-serif">gravity</text>`;
+    return `<div class="calTile" data-side="${i}"><svg viewBox="-92 -66 184 128">${body}</svg><span><b>${i + 1}. ${s.t}</b><br>${s.hint}</span></div>`;
   }).join('');
 }
 function calMarkTiles(nextText) {
