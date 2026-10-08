@@ -1190,7 +1190,7 @@ function hwId() {
   const p = activePlayers().find((q) => q.hw);
   return p ? p.pid.slice(3) : calId;
 }
-function updateCalBtn() { const hw = activePlayers().some((p) => p.hw); $('calBtn').classList.toggle('hidden', !hw); $('calQuickBtn').classList.toggle('hidden', !hw); }
+function updateCalBtn() { const hw = activePlayers().some((p) => p.hw); $('calBtn').classList.toggle('hidden', !hw); $('calQuickBtn').classList.toggle('hidden', !hw); $('calSetupLink').classList.toggle('hidden', !hw); }
 let calQuick = false;
 function calShow(on) { $('calPanel').classList.toggle('hidden', !on); if (!on) { calQuick = false; $('calPanel').classList.remove('quick'); } }
 // ---- calibration pictures: the whole controller (breadboard + NodeMCU + ADXL345) in each of the 6 resting positions
